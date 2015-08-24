@@ -371,4 +371,26 @@ HEREDOC;
     }
   }
 
+  /**
+   * @Given /^all features in the package "(?P<text>(?:[^"]|\\")*)" are in default state$/
+   */
+  public function featuresInThePackageAreInDefaultState($package) {
+    module_load_include('inc', 'features', "features.admin");
+
+    $features = _features_get_features_list();
+
+    foreach ($features as $feature) {
+      if ($feature->info['package'] == $package && $feature->status == '1') {
+        $this->minkContext->assertAtPath('admin/structure/features/' . $feature->name . '/status');
+
+        try {
+          $this->minkContext->assertPageContainsText('{"storage":0}');
+        }
+        catch (Exception $e) {
+          throw new Behat\Mink\Exception\ResponseTextException('Feature "' . $feature->info['name'] . '" is not in default state', $this->minkContext->getSession());
+        }
+      }
+    }
+  }
+
 }
