@@ -312,4 +312,63 @@ HEREDOC;
     $this->saveScreenshot($fileName, $screenShotPath);
     print 'Screenshot at: https://github.com/Roomify/agency_build/blob/gh-pages/' . $fileName;
   }
+
+  /**
+   * @When /^I click on "([^"]*)" on the row containing "([^"]*)"$/
+   */
+  public function iClickOnOnTheRowContaining($linkName, $rowText) {
+    $row = $this->getSession()->getPage()->find('css', sprintf('table tr:contains("%s")', $rowText));
+    if (!$row) {
+      throw new \Exception(sprintf('Cannot find any row on the page containing the text "%s"', $rowText));
+    }
+    $row->clickLink($linkName);
+  }
+
+  /**
+   * Selects option in select field with the provided CSS Selector
+   *
+   * @When /^(?:|I )select "(?P<option>(?:[^"]|\\")*)" from css selector "([^"]*)"$/
+   */
+  public function selectOptionFromCSSSelector($option, $select) {
+    $element = $this->getSession()->getPage()->find(
+      'xpath',
+      $this->getSession()->getSelectorsHandler()->selectorToXpath('css', $select)
+    );
+
+    if (!$element) {
+      throw new \InvalidArgumentException(sprintf('Not found select with CSS selector: "%s"', $select));
+    }
+
+    $element->selectOption($option);
+  }
+
+  /**
+   * @Then /^I should see values in row table:$/
+   */
+  public function iShouldSeeValuesInTable(TableNode $nodesTable) {
+    $page = $this->getSession()->getPage();
+    $rows = $page->findAll('css', 'tr');
+    if (!$rows) {
+      throw new \Exception(sprintf('No rows found on the page %s', $this->getSession()->getCurrentUrl()));
+    }
+
+    foreach ($nodesTable->getHash() as $row_texts) {
+      $found = TRUE;
+      foreach ($rows as $row) {
+        $found = TRUE;
+        foreach ($row_texts as $row_text) {
+          if (!empty($row_text) && strpos($row->getText(), $row_text) === FALSE) {
+            $found = FALSE;
+          }
+        }
+        if ($found) {
+          break;
+        }
+      }
+      if (!$found) {
+        throw new \Exception(sprintf('Not found a row containing the desired texts'));
+      }
+    }
+  }
+
 }
