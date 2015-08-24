@@ -3,7 +3,7 @@
   "type": "roomify-extension",
   "description": "Roomify extension for Behat",
   "keywords": ["drupal", "web", "test"],
-  "homepage": "github.com/Roomify/roomifyextension",
+  "homepage": "https://github.com/Roomify/roomifyextension",
   "license": "GPL-2.0+",
   "require": {
     "behat/mink": "~1.5",
