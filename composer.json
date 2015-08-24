@@ -1,5 +1,5 @@
 {
-  "name": "drupal/roomify-extension",
+  "name": "roomify/roomify-extension",
   "type": "roomify-extension",
   "description": "Roomify extension for Behat",
   "keywords": ["drupal", "web", "test"],
@@ -21,7 +21,7 @@
   },
   "autoload": {
     "psr-0": {
-      "Drupal\\RoomifyExtension": "src/"
+      "Roomify\\RoomifyExtension": "src/"
     }
   },
   "extra": {

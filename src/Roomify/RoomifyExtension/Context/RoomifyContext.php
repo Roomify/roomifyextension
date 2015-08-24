@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\RoomifyExtension\Context;
+namespace Roomify\RoomifyExtension\Context;
 
 use Drupal\DrupalExtension\Context\DrupalSubContextBase,
     Drupal\Component\Utility\Random;
