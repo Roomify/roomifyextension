@@ -177,7 +177,7 @@ HEREDOC;
     $fieldId = $el->getAttribute('id');
 
     if (empty($fieldId)) {
-    throw new Exception('Could not find an id for field with locator: ' . $locator);
+      throw new \Exception('Could not find an id for field with locator: ' . $locator);
     }
 
     $this->getSession()->executeScript("CKEDITOR.instances[\"$fieldId\"].setData(\"$value\");");
@@ -298,7 +298,7 @@ HEREDOC;
     $screenShotPath = '/tmp/screenshots';
     $driver = $this->getSession()->getDriver();
 
-    if (!$driver instanceof Behat\Mink\Driver\Selenium2Driver) {
+    if (!$driver instanceof \Behat\Mink\Driver\Selenium2Driver) {
       return;
     }
 
@@ -386,8 +386,8 @@ HEREDOC;
         try {
           $this->minkContext->assertPageContainsText('{"storage":0}');
         }
-        catch (Exception $e) {
-          throw new Behat\Mink\Exception\ResponseTextException('Feature "' . $feature->info['name'] . '" is not in default state', $this->minkContext->getSession());
+        catch (\Exception $e) {
+          throw new \Behat\Mink\Exception\ResponseTextException('Feature "' . $feature->info['name'] . '" is not in default state', $this->minkContext->getSession());
         }
       }
     }
