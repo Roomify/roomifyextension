@@ -393,4 +393,22 @@ HEREDOC;
     }
   }
 
+  /**
+   * @When I select the first option after filling :value in :field
+   */
+  public function iFillInSelectInputWithAndSelect($value, $field) {
+    $page = $this->getSession()->getPage();
+    $this->minkContext->fillField($field, $value);
+
+    $element = $page->findField($field);
+    $this->getSession()->getDriver()->keyDown($element->getXpath(), '', null);
+    $this->getSession()->wait(2000);
+    $chosenResults = $page->findAll('css', '.ui-autocomplete a');
+    foreach ($chosenResults as $result) {
+      $result->click();
+      return;
+    }
+    throw new \Exception(sprintf('No option was found'));
+  }
+
 }
