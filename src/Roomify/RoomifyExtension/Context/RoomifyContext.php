@@ -26,6 +26,13 @@ class RoomifyContext extends DrupalSubContextBase implements CustomSnippetAccept
   private $minkContext;
 
   /**
+   * Keep track of bookable units so they can be cleaned up.
+   *
+   * @var array
+   */
+  public $units = array();
+  
+  /**
    * Initializes context.
    *
    * Every scenario gets its own context instance.
@@ -50,6 +57,11 @@ class RoomifyContext extends DrupalSubContextBase implements CustomSnippetAccept
    * @AfterScenario
    */
   public function after(AfterScenarioScope $scope) {
+    if (!empty($this->units)) {
+      foreach ($this->units as $unit) {
+        $unit->delete();
+      }
+    }
   }
 
   /**
@@ -409,6 +421,77 @@ HEREDOC;
       return;
     }
     throw new \Exception(sprintf('No option was found'));
+  }
+
+  /**
+   * @When /^I am on the "([^"]*)" unit$/
+   */
+  public function iAmOnTheUnit($unit_name) {
+    $this->iAmDoingOnTheUnit('view', $unit_name);
+  }
+
+  /**
+   * Redirects user to the action page for the given unit.
+   *
+   * @param $action
+   * @param $unit_name
+   */
+  protected function iAmDoingOnTheUnit($action, $unit_name) {
+    $unit_id = $this->findBookableUnitByName($unit_name);
+    $url = "admin/rooms/units/unit/$unit_id/$action";
+    $this->getSession()->visit($this->locatePath($url));
+  }
+
+  /**
+   * Returns a unit_id from its name.
+   *
+   * @param $unit_name
+   * @return int
+   * @throws RuntimeException
+   */
+  protected function findBookableUnitByName($unit_name) {
+    $efq = new \EntityFieldQuery();
+    $efq->entityCondition('entity_type', 'rooms_unit')
+      ->propertyCondition('name', $unit_name);
+    $results = $efq->execute();
+    if ($results && isset($results['rooms_unit'])) {
+      return key($results['rooms_unit']);
+    }
+    else {
+      throw new \RuntimeException('Unable to find that bookable unit');
+    }
+  }
+
+  /**
+   * @When /^I visit the last unit created$/
+   */
+  public function iVisitTheLastUnitCreated() {
+    $unit_id = $this->getLastUnit();
+    $url = "unit/$unit_id";
+    $this->getSession()->visit($this->locatePath($url));
+  }  
+
+  /**
+   * Retrieves the last unit ID.
+   *
+   * @return int
+   *   The last unit ID.
+   *
+   * @throws RuntimeException
+   */
+  protected function getLastUnit() {
+    $efq = new \EntityFieldQuery();
+    $efq->entityCondition('entity_type', 'rooms_unit')
+      ->entityOrderBy('entity_id', 'DESC')
+      ->range(0, 1);
+    $result = $efq->execute();
+    if (isset($result['rooms_unit'])) {
+      $return = key($result['rooms_unit']);
+      return $return;
+    }
+    else {
+      throw new \RuntimeException('Unable to find the last booking');
+    }
   }
 
 }
