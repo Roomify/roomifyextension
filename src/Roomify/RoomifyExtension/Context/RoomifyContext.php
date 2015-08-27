@@ -2,6 +2,8 @@
 
 namespace Roomify\RoomifyExtension\Context;
 
+use Behat\Gherkin\Node\TableNode;
+
 use Drupal\DrupalExtension\Context\DrupalSubContextBase,
     Drupal\Component\Utility\Random;
 
@@ -31,6 +33,20 @@ class RoomifyContext extends DrupalSubContextBase implements CustomSnippetAccept
    * @var array
    */
   public $units = array();
+
+  /**
+   * Keep track of bookings so they can be cleaned up.
+   *
+   * @var array
+   */
+  public $bookings = array();
+
+  /**
+   * Keep track of customer profiles so they can be cleaned up.
+   *
+   * @var array
+   */
+  public $customerProfiles = array();
   
   /**
    * Initializes context.
@@ -57,6 +73,17 @@ class RoomifyContext extends DrupalSubContextBase implements CustomSnippetAccept
    * @AfterScenario
    */
   public function after(AfterScenarioScope $scope) {
+    if (!empty($this->bookings)) {
+      rooms_booking_delete_multiple($this->bookings);
+    }
+
+    if (!empty($this->customerProfiles)) {
+      commerce_customer_profile_delete_multiple($this->customerProfiles);
+      db_delete('rooms_customers')
+        ->condition('commerce_customer_id', $this->customerProfiles)
+        ->execute();
+    }
+
     if (!empty($this->units)) {
       foreach ($this->units as $unit) {
         $unit->delete();
@@ -431,6 +458,20 @@ HEREDOC;
   }
 
   /**
+   * @When /^I am editing the "([^"]*)" unit$/
+   */
+  public function iAmEditingTheUnit($unit_name) {
+    $this->iAmDoingOnTheUnit('edit', $unit_name);
+  }
+
+  /**
+   * @When /^I am deleting the "([^"]*)" unit$/
+   */
+  public function iAmDeletingTheUnit($unit_name) {
+    $this->iAmDoingOnTheUnit('delete', $unit_name);
+  }
+
+  /**
    * Redirects user to the action page for the given unit.
    *
    * @param $action
@@ -491,6 +532,95 @@ HEREDOC;
     }
     else {
       throw new \RuntimeException('Unable to find the last booking');
+    }
+  }
+
+  /**
+   * @Given /^"(?P<type>[^"]*)" bookings:$/
+   */
+  public function createBookings($type, TableNode $nodesTable) {
+    foreach ($nodesTable->getHash() as $nodeHash) {
+      $profile_id = $this->customerProfiles[$nodeHash['profile_id']];
+
+      $profile = commerce_customer_profile_load($profile_id);
+      $client_name = isset($profile->commerce_customer_address['und'][0]['name_line']) ? $profile->commerce_customer_address['und'][0]['name_line'] : $nodeHash['profile_id'];
+
+      // Save customer in rooms_customers table.
+      db_merge('rooms_customers')
+        ->key(array('name' => $client_name))
+        ->fields(array(
+          'name' => $client_name,
+          'commerce_customer_id' => $profile_id,
+        ))
+        ->execute();
+
+      // Get customer id from rooms_customers table.
+      $client_id = db_select('rooms_customers')
+        ->fields('rooms_customers', array('id'))
+        ->condition('name', $client_name, '=')
+        ->execute()->fetchField();
+
+      $unit_id = $this->findBookableUnitByName($nodeHash['unit']);
+      $unit = rooms_unit_load($unit_id);
+      $unit_type = $unit->type;
+      $data = array(
+        'type' => $type,
+        'name' => $client_name,
+        'customer_id' => $client_id,
+        'unit_id' => $unit_id,
+        'unit_type' => $unit_type,
+        'start_date' => $nodeHash['start_date'],
+        'end_date' => $nodeHash['end_date'],
+        'booking_status' => $nodeHash['status'],
+        'data' => array(
+          'group_size' => $nodeHash['guests'],
+          'group_size_children' => $nodeHash['children'],
+        ),
+      );
+      $booking = rooms_booking_create($data);
+      $booking->save();
+
+      $start_date = new \DateTime($nodeHash['start_date']);
+      $end_date = new \DateTime($nodeHash['end_date']);
+      $booking_parameters = array('adults' => $nodeHash['guests'], 'children' => $nodeHash['children']);
+      $order = rooms_booking_manager_create_order($start_date, $end_date, $booking_parameters, $unit, $booking, $client_id);
+
+      $booking->order_id = $order->order_number;
+      $booking->save();
+
+      $this->bookings[] = $booking->booking_id;
+    }
+  }
+
+  /**
+   * @Given /^customer profiles:$/
+   */
+  public function createCustomerProfiles(TableNode $nodesTable) {
+    foreach ($nodesTable->getHash() as $nodeHash) {
+      $profile = commerce_customer_profile_new('billing', isset($this->user->uid) ? $this->user->uid : 0);
+      $wrapper = entity_metadata_wrapper('commerce_customer_profile', $profile);
+      if (isset($nodeHash['country'])) {
+        $wrapper->commerce_customer_address->country = $nodeHash['country'];
+      }
+      if (isset($nodeHash['name'])) {
+        $wrapper->commerce_customer_address->name_line = $nodeHash['name'];
+      }
+      if (isset($nodeHash['address'])) {
+        $wrapper->commerce_customer_address->thoroughfare = $nodeHash['address'];
+      }
+      if (isset($nodeHash['locality'])) {
+        $wrapper->commerce_customer_address->locality = $nodeHash['locality'];
+      }
+      if (isset($nodeHash['postal_code'])) {
+        $wrapper->commerce_customer_address->postal_code = $nodeHash['postal_code'];
+      }
+      $wrapper->save();
+      if (isset($nodeHash['profile_id'])) {
+        $this->customerProfiles[$nodeHash['profile_id']] = $wrapper->profile_id->value();
+      }
+      else {
+        $this->customerProfiles[] = $wrapper->profile_id->value();
+      }
     }
   }
 
