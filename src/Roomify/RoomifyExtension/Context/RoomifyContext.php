@@ -624,4 +624,15 @@ HEREDOC;
     }
   }
 
+  /**
+   * @Given /^I am on the booking page with:$/
+   */
+  public function onTheBookingPage(TableNode $nodesTable) {
+    foreach ($nodesTable->getHash() as $nodeHash) {
+      $unit_id = $this->getLastUnit();
+      $url = 'booking/' . $nodeHash['start_date'] . '/' . $nodeHash['end_date'] . '/1?bookable_units=' . $unit_id . '&rooms_group_size1=' . $nodeHash['rooms_group_size1'];
+      $this->getSession()->visit($this->locatePath($url));
+    }
+  }
+
 }
