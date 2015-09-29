@@ -768,4 +768,34 @@ HEREDOC;
     }
   }
 
+  /**
+   * @Then /^the metatag attribute "(?P<attribute>[^"]*)" should have the value "(?P<value>[^"]*)"$/
+   *
+   * @throws \Exception
+   *   If region or link within it cannot be found.
+   */
+  public function assertMetaRegion($metatag, $value) {
+    $element = $this->getSession()->getPage()->find('xpath', '/head/meta[@name="' . $metatag . '"]');
+
+    if ($value == $element->getAttribute('content')) {
+      $result = $value;
+    }
+
+    if (empty($result)) {
+      throw new \Exception(sprintf('No link to "%s" on the page %s', $metatag, $this->getSession()->getCurrentUrl()));
+    }
+  }
+
+  /**
+   * @Then /^I should see "(?P<value>[^"]*)" in the title element$/
+   *
+   * @throws \Exception
+   *   If region or link within it cannot be found.
+   */
+  public function assertTitleElement($value) {
+    $element = $this->getSession()->getPage()->find('xpath', '/head/title');
+
+    return $element->getText();
+  }
+
 }
