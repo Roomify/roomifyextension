@@ -28,6 +28,13 @@ class RoomifyContext extends DrupalSubContextBase implements CustomSnippetAccept
   private $minkContext;
 
   /**
+   * The Maillog
+   *
+   * @var int
+   */
+  private $maillog_last_id;
+
+  /**
    * Keep track of bookable units so they can be cleaned up.
    *
    * @var array
@@ -67,6 +74,23 @@ class RoomifyContext extends DrupalSubContextBase implements CustomSnippetAccept
   public function before(BeforeScenarioScope $scope) {
     $environment = $scope->getEnvironment();
     $this->minkContext = $environment->getContext('Drupal\DrupalExtension\Context\MinkContext');
+
+    if (module_exists('maillog')) {
+      $this->maillog_last_id = (int) db_query('SELECT MAX(idmaillog) FROM {maillog}')->fetchField();
+      // maillog configuration
+      variable_set('maillog_send', 0);
+      variable_set('maillog_log', 1);
+      variable_set('maillog_devel', 0);
+      // Set the the maillog handler in all mail system types
+      $mail_system = array(
+       'default-system' => 'MaillogMailSystem',
+       'htmlmail' => 'MaillogMailSystem',
+       'variable_email' => 'MaillogMailSystem',
+       'maillog' => 'MaillogMailSystem',
+      );
+
+      variable_set('mail_system', $mail_system);
+    }
   }
 
   /**
@@ -632,6 +656,115 @@ HEREDOC;
       $unit_id = $this->getLastUnit();
       $url = 'booking/' . $nodeHash['start_date'] . '/' . $nodeHash['end_date'] . '/1?bookable_units=' . $unit_id . '&rooms_group_size1=' . $nodeHash['rooms_group_size1'];
       $this->getSession()->visit($this->locatePath($url));
+    }
+  }
+
+  /**
+   * Replace the property tokens in a give string.
+   *
+   * @param string $string
+   *   The string where the tokens will be find and replaced.
+   *
+   * @return string
+   *   The string with the replaced value token or same input string if no token found.
+   **/
+  private function replaceTokens($string) {
+    // Random string token
+    if (preg_match("/<random>/", $string, $matches)) {
+      $string = str_replace('<random>', $this->getRandom()->name(), $string);
+    }
+
+    // Member property tokens
+    if (preg_match("/(?:<)(?P<property>.*)(?:>)/", $string, $matches)) {
+      $property_name = $matches['property'];
+      $string = str_replace("<$property_name>", $this->getCurrentMemberProperty($property_name), $string);
+    }
+
+    return $string;
+  }
+
+  /**
+   * Returns TRUE if the actual email matches the expected email.
+   *
+   * @param array $actual
+   *  An associative array of all the columns in the actual maillog database
+   *  table row.
+   *
+   * @param array $expected
+   *  The expected email regex values. Allowed, case insensitive keys are:
+   *   - Subject, To, From, Reply to, Body.
+   * @return bool
+   */
+  private function emailsMatch($actual, $expected) {
+    $match_count = 0;
+
+    foreach ($expected as $part => $expected_value) {
+      $part = strtolower($part);
+      if ('subject' == $part) {
+        $actual_value = $actual['subject'];
+      }
+      elseif ('to' == $part) {
+        $actual_value = $actual['header_to'];
+      }
+      elseif ('from' == $part) {
+        $actual_value = $actual['header_from'];
+      }
+      elseif ('reply to' == $part) {
+        $actual_value = $actual['header_reply_to'];
+      }
+      elseif ('body' == $part) {
+        $actual_value = $actual['body'];
+      }
+      else {
+        throw new \Exception("Unknown part in expected email '$part'");
+      }
+
+      // Replace <random> or member <property> token
+      $expected_value = $this->replaceTokens($expected_value);
+
+      if (preg_match("/$expected_value/i", $actual_value, $matches)) {
+        $match_count++;
+      }
+    }
+
+    if (count($expected) == $match_count) {
+      return TRUE;
+    }
+
+    return FALSE;
+  }
+
+  /**
+   * @Then /^(\d+) emails? should be sent:$/i
+   */
+  public function emailsWereSent($num, TableNode $table) {
+    $expected_emails = $table->getHash();
+
+    $actual_emails = db_select('maillog', 'm')
+      ->fields('m')
+      ->condition('idmaillog', $this->maillog_last_id, '>')
+      ->orderBy('idmaillog', 'DESC')
+      ->execute()
+      ->fetchAllAssoc('idmaillog', \PDO::FETCH_ASSOC);
+
+    if (count($actual_emails) < $num) {
+      throw new \Exception('Only ' . count($actual_emails) . ' were sent.');
+    }
+
+    $missing_emails = array();
+    foreach ($expected_emails as $expected_email) {
+      foreach ($actual_emails as $actual_email) {
+        if ($this->emailsMatch($actual_email, $expected_email)) {
+          continue 2;
+        }
+      }
+      // No matches for the expected email.
+      $missing_emails[] = $expected_email;
+    }
+
+    if (count($missing_emails) > 0) {
+      $message = "Missing Emails:\n" . implode("\n", array_map('drupal_json_encode', $missing_emails));
+      throw new \Exception($message);
     }
   }
 
