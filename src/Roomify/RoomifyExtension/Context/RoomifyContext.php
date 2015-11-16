@@ -4,7 +4,7 @@ namespace Roomify\RoomifyExtension\Context;
 
 use Behat\Gherkin\Node\TableNode;
 
-use Drupal\DrupalExtension\Context\DrupalSubContextBase,
+use Drupal\DrupalExtension\Context\DrupalContext,
     Drupal\Component\Utility\Random;
 
 use Behat\Behat\Hook\Scope\BeforeScenarioScope,
@@ -16,7 +16,7 @@ use Behat\Behat\Context\CustomSnippetAcceptingContext;
 
 use Drupal\DrupalDriverManager;
 
-class RoomifyContext extends DrupalSubContextBase implements CustomSnippetAcceptingContext {
+class RoomifyContext extends DrupalContext implements CustomSnippetAcceptingContext {
 
   protected $dateFormat = 'd/m/Y';
 
@@ -55,17 +55,6 @@ class RoomifyContext extends DrupalSubContextBase implements CustomSnippetAccept
    */
   public $customerProfiles = array();
   
-  /**
-   * Initializes context.
-   *
-   * Every scenario gets its own context instance.
-   * You can also pass arbitrary arguments to the
-   * context constructor through behat.yml.
-   */
-  public function __construct(DrupalDriverManager $drupal) {
-    parent::__construct($drupal);
-  }
-
   public static function getAcceptedSnippetType() { return 'regex'; }
 
   /**
