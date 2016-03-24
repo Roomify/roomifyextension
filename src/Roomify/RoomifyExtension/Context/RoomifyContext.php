@@ -207,21 +207,6 @@ HEREDOC;
   }
 
   /**
-   * Check logged in status.
-   *
-   * Overrides RawDrupalContext::loggedIn().
-   * @see https://github.com/jhedstrom/drupalextension/pull/131.
-   */
-  public function loggedIn() {
-    $session = $this->getSession();
-    $page = $session->getPage();
-
-    // Body class check from pull/131.
-    $body = $page->find('css', 'body');
-    return $body->hasClass('logged-in');
-  }
-
-  /**
   * @Then /^I fill in wysiwyg on field "([^"]*)" with "([^"]*)"$/
   */
   public function iFillInWysiwygOnFieldWith($locator, $value) {
