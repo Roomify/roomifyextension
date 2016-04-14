@@ -189,6 +189,24 @@ HEREDOC;
   }
 
   /**
+   * Click on the element with the provided xpath query
+   *
+   * @Given /^I click on the element with xpath "([^"]*)"$/
+   */
+  public function iClickOnTheElementWithXPath($xpath) {
+    $session = $this->getSession();
+    $element = $session->getPage()->find(
+      'xpath',
+      $session->getSelectorsHandler()->selectorToXpath('xpath', $xpath)
+    );
+    if ($element === NULL) {
+      throw new \InvalidArgumentException(sprintf('Could not evaluate XPath: "%s"', $xpath));
+    }
+
+    $element->click();
+  }
+
+  /**
    * Click on the element with the provided CSS Selector
    *
    * @Given /^I click on the element with css selector "([^"]*)"$/
