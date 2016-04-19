@@ -361,11 +361,10 @@ HEREDOC;
       mkdir($screenShotPath, 0777, true);
     }
 
-    $baseUrl = $this->getMinkParameter('base_url');
     $fileName = date('d-m-y') . '-' . uniqid() . '.png';
 
     $this->saveScreenshot($fileName, $screenShotPath);
-    print 'Screenshot at: https://github.com/Roomify/agency_build/blob/gh-pages/' . $fileName;
+    print 'Screenshot at: https://github.com/Roomify/roomify/blob/gh-pages/' . $fileName;
   }
 
   /**
