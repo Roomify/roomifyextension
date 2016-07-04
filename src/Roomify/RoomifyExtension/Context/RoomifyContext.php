@@ -778,6 +778,26 @@ HEREDOC;
   }
 
   /**
+   * @Then /^the metatag property "(?P<metatag>[^"]*)" should contain the value "(?P<value>[^"]*)"$/
+   *
+   * @throws \Exception
+   *   If region or link within it cannot be found.
+   */
+  public function assertMetaPropertyRegion($metatag, $value) {
+
+    $session = $this->getSession();
+
+    $element = $session->getPage()->find('xpath', '/head/meta[@property="' . $metatag . '"]');
+    if (strpos($element->getAttribute('content'), $value) !== false) {
+      $result = $value;
+    }
+
+    if (empty($result)) {
+      throw new \Exception(sprintf('No link to "%s" on the page %s', $metatag, $this->getSession()->getCurrentUrl()));
+    }
+  }
+
+  /**
    * @Then /^I should see "(?P<value>[^"]*)" in the title element$/
    *
    * @throws \Exception
