@@ -64,7 +64,7 @@ class RoomifyContext extends DrupalContext implements CustomSnippetAcceptingCont
     $environment = $scope->getEnvironment();
     $this->minkContext = $environment->getContext('Drupal\DrupalExtension\Context\MinkContext');
 
-    if (module_exists('maillog')) {
+    if (\Drupal::moduleHandler()->moduleExists('maillog')) {
       $this->maillog_last_id = (int) db_query('SELECT MAX(idmaillog) FROM {maillog}')->fetchField();
       // maillog configuration
       variable_set('maillog_send', 0);
