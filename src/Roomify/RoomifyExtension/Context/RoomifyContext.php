@@ -281,7 +281,7 @@ HEREDOC;
       }
 
       // Login.
-      $this->login();
+      $this->login($user);
     }
   }
 
@@ -330,7 +330,7 @@ HEREDOC;
     $this->roles[] = $rid;
 
     // Login.
-    $this->login();
+    $this->login($user);
   }
 
   /**
