@@ -334,15 +334,6 @@ HEREDOC;
   }
 
   /**
-   * @AfterStep
-   */
-  public function takeScreenshotAfterFailedStep(AfterStepScope $scope) {
-    if (99 === $scope->getTestResult()->getResultCode()) {
-      $this->takeScreenshot();
-    }
-  }
-
-  /**
    * @Given /^I take a screenshot$/
    */
   public function iTakeAScreenshot() {
