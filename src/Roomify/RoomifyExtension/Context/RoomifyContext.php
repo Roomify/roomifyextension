@@ -184,7 +184,7 @@ HEREDOC;
    *
    * @Given /^I wait (\d+) seconds$/
    */
-  public function waitSeconds($seconds) {
+  public function iWaitSeconds($seconds) {
     $this->getSession()->wait(1000 * $seconds);
   }
 
